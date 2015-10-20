@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
+<link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:300|Crete+Round' rel='stylesheet' type='text/css'>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
+
+<style>
+	* { box-sizing: border-box; margin: 0; }
+	body { font-family: 'Crete Round', serif; }
+	#bg { position: fixed; width: 100%; height: 100%; background-image: url("http://www.gayhurst.hackney.sch.uk/_files/images/page/OurFacilities/1744A91232FA070C194371814F057207.jpg"); background-size: cover; background-repeat: no-repeat; background-position: 50% 50%; z-index: -1; }
+	h1 i { padding: 0 0.1em; }
+	#bg-overlay { position: fixed; width: 100%; height: 100%; background: rgba(255,255,255,0.65); z-index: -1; }
+
+	#wrapper { padding: 30px; text-align: center; }
+	#header { position: fixed; top: 0; left: 0; width: 100%; height: 150px; padding: 40px 0 0; background: #5FC236; color: white; text-align: center; }
+	#header h1 { font-size: 40px; }
+	#nav { margin-top: 0; display: none; }
+	#nav h2 { display: inline-block; margin-right: 15px; font-size: 15px; }
+	#nav h2:hover { color: black; }
+
+	#menu { font-size: 20px; margin: auto; display: inline-block; line-height: 1.1; }
+	#menu .day { margin: 3em 0 0; padding: 3em 1em; max-width: 800px; background: white; box-shadow: 3px 3px 5px rgba(0,0,0,0.1); position: relative; }
+	#menu .day .date { font-family: 'Source Sans Pro', sans-serif; }
+	#menu .day .main { margin-top: 1em; }
+	#menu .day .main .option { font-size: 1.25em; margin-top: 0.75em; color: purple ;}
+	#menu .day .main .option.veggie { color: green; }
+	#menu .day .main .or { font-size: 0.75em; margin: 0 0.25em; font-style: italic; }
+	#menu .day .sides { margin-top: 0.3em; }
+	#menu .day .dessert { border-top: 1px dotted #333; display: inline-block; margin-top: 1em; padding-top: 1em;}
+	#menu .day .with { font-size: 0.6em; margin-right: 0.4em; font-style: italic; }
+	#menu .day .jacket { font-size: 0.8em; margin-top: 1em; font-style: italic; }
+
+	#menu .day.non-schoolday { background: #888; color: white; }
+	#menu .day.highlight { border: 10px solid yellow; }
+	#menu .day.yesterday::before { content: "Yesterday"; }
+	#menu .day.today::before { content: "Today"; }
+	#menu .day.tomorrow::before { content: "Tomorrow"; }
+
+	@media only screen and (max-width: 500px) {
+		#header { height: 100px; padding: 30px 0; }
+		#header h1 { font-size: 32px; }
+		#menu { font-size: 16px; }
+	}
+
+</style>
+
+</head>
+<body>
+
+<div id="bg"></div>
+<div id="bg-overlay"></div>
+<div id="wrapper">
+	<div id="menu"></div>
+</div>
+	<div id="header">
+		<div>On the menu at</div>
+		<h1>GAY<i class="fa fa-cutlery"></i>URST</h1>
+		<div id="nav">
+			<h2>Today</h2>
+			<h2>Tomorrow</h2>
+			<h2>Later</h2>
+		</div>
+	</div>
+<script>
+
+var MONTHS = [ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ];
+
+var URL = "https://docs.google.com/spreadsheets/d/1x7gRV9wDzjpGU7_JWeooHJX_bL-pAx-mKJMkwCb4XgY/export?format=csv";
+var SHEETS = {
+    dates: "667287122",
+    menu_list: "0",
+}
+
+var $ = d3.select,
+    $$ = d3.selectAll,
+    header = document.getElementById("header");
+
+
+var today = new Date(),
+    yesterday = new Date(),
+    tomorrow = new Date();
+yesterday.setDate(today.getDate() - 1);
+tomorrow.setDate(today.getDate() + 1);
+
+function showToday() {
+	var f = $(".day:first-child").node().offsetTop,
+		t = $(".today").node().offsetTop;
+	d3.transition().duration(750).tween("scroller", scrollTopTween(t - f))
+}
+
+function scrollTopTween(scrollY) {
+	return function() {
+		var i = d3.interpolateNumber(window.pageYOffset, scrollY);
+		return function(t) { window.scrollTo(window.scrollX, i(t)); };
+	};
+}
+
+function scrollToValue(val, duration) {
+	if (typeof duration == "undefined") duration = 1000;
+	;
+}
+
+function highlightToday() {
+	var days = $$(".day")[0];
+	for (var i = 0; i < days.length; i++) {
+		var d = days[i].__data__["Date"].split("-");
+		if (d[0] == yesterday.getDate() && d[1] == MONTHS[yesterday.getMonth()].substring(0,3)) {
+			$(days[i]).classed("yesterday", true);
+		}
+		if (d[0] == today.getDate() && d[1] == MONTHS[today.getMonth()].substring(0,3)) {
+			$(days[i]).classed("today highlight", true);
+		}
+		if (d[0] == tomorrow.getDate() && d[1] == MONTHS[tomorrow.getMonth()].substring(0,3)) {
+			$(days[i]).classed("tomorrow", true);
+		}
+
+	}
+}
+
+function setLayout() {
+	$(".day:first-child").style("margin-top", header.getBoundingClientRect().height + 30 + "px");
+	showToday();
+}
+function createPage() {
+	var menus = d3.nest()
+		.key(function(d) { return d.Menu; })
+		.key(function(d) { return d.Day; })
+		.map(menu_list);
+
+	var days = $("#menu").selectAll(".day").data(dates).enter().append("div")
+			.attr("class", "day")
+			.each(function(d, i) {
+				var day = $(this),
+				    date = d.Date.split("-")[0],
+				    month = d.Date.split("-")[1];
+				day.append("div").attr("class", "date")
+					.text(d.Day + " " + d.Date.replace(/-/g, " "));
+				var main = day.append("div").attr("class", "main");
+				if (parseFloat(d.Menu)) {
+					var menu = menus[d.Menu][d.Day][0];
+					main.append("span").attr("class", "option").text(menu.Main);
+					if (menu.Veggie) {
+						main.append("span").attr("class", "or").text(" or ");
+						main.append("span").attr("class", "option veggie").text(menu.Veggie);
+					}
+					var sides = day.append("div").attr("class", "sides");
+					sides.append("span").attr("class", "with").text("with ");
+					sides.append("span").attr("class", "sides")
+						.text(function(d) { return menu.Side.toLowerCase() + ", " + menu.Veg.toLowerCase() + " & " + menu.Salad.toLowerCase(); });
+					if (menu.Jacket) day.append("div").attr("class", "jacket").text(function(d) { return "Jacket potato option: " + menu.Jacket; });
+					day.append("div").attr("class", "dessert").text(function(d) { return menu.Dessert; });
+				}
+				else {
+					day.classed("non-schoolday", true);
+					if (d.Day == "Saturday" || d.Day == "Sunday") main.text("Weekend");
+					else main.text(d.Menu);
+				}
+			});
+
+	highlightToday();
+	window.onresize = setLayout;
+	setLayout();
+	showToday();
+}
+
+var files_loaded = 0;
+function init() {
+	for (sheet in SHEETS) {
+		(function(sheet) {
+				d3.csv(URL + "&gid=" + SHEETS[sheet], function(error, data) {
+				if (error) throw(error);
+				window[sheet] = data;
+				if (++files_loaded == 2) createPage();
+			});
+		})(sheet);
+	}
+}
+
+init();
+
+</script>
+
+</body>
+</html>
+
