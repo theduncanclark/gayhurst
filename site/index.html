@@ -68,10 +68,9 @@
 
 var MONTHS = [ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ];
 
-var URL = "https://docs.google.com/spreadsheets/d/1x7gRV9wDzjpGU7_JWeooHJX_bL-pAx-mKJMkwCb4XgY/export?format=csv";
 var SHEETS = {
-    dates: "667287122",
-    menu_list: "0",
+    dates: "https://s3-eu-west-1.amazonaws.com/gayhurstfood/calendar.csv",
+    menu_list: "https://s3-eu-west-1.amazonaws.com/gayhurstfood/menus.csv",
 }
 
 var $ = d3.select,
@@ -170,7 +169,7 @@ var files_loaded = 0;
 function init() {
 	for (sheet in SHEETS) {
 		(function(sheet) {
-				d3.csv(URL + "&gid=" + SHEETS[sheet], function(error, data) {
+				d3.csv(SHEETS[sheet], function(error, data) {
 				if (error) throw(error);
 				window[sheet] = data;
 				if (++files_loaded == 2) createPage();
